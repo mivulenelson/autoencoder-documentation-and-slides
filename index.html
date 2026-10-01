@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Autoencoder Host-Based IDS for Encrypted Network Traffic</title>
+<style>
+:root{--bg:#0b1a2b;--card:#12283f;--tx:#eaf2fa;--mu:#9db3c8;--ac:#2dd4bf;--ac2:#60a5fa;--bd:#22405c;--warn:#fbbf24}
+@media (prefers-color-scheme:light){:root:not([data-theme="dark"]){--bg:#f4f8fc;--card:#fff;--tx:#0b1a2b;--mu:#4b6379;--ac:#0d9488;--ac2:#2563eb;--bd:#d3e0ec;--warn:#b45309}}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--tx);font-family:"Segoe UI",system-ui,-apple-system,Helvetica,Arial,sans-serif;display:flex;flex-direction:column;overflow:hidden;padding-top:env(safe-area-inset-top,0px)}
+#stage{flex:1;position:relative;min-height:0}
+.s{position:absolute;inset:0;padding:clamp(18px,4vw,56px);display:none;flex-direction:column;justify-content:center;overflow-y:auto;animation:in .35s ease}
+.s.on{display:flex}
+@keyframes in{from{opacity:0;transform:translateX(16px)}to{opacity:1;transform:none}}
+.k{color:var(--ac);font-size:clamp(11px,1.3vw,14px);letter-spacing:.14em;text-transform:uppercase;font-weight:700;margin-bottom:6px}
+h1{font-size:clamp(24px,4.2vw,50px);line-height:1.15;margin:0 0 16px;max-width:24ch}
+h2{font-size:clamp(22px,3.3vw,38px);margin:0 0 18px;line-height:1.15}
+h2:after{content:"";display:block;width:56px;height:4px;border-radius:2px;background:linear-gradient(90deg,var(--ac),var(--ac2));margin-top:10px}
+ul{list-style:none;padding:0;margin:0;display:grid;gap:10px}
+li{background:var(--card);border:1px solid var(--bd);border-left:4px solid var(--ac);border-radius:10px;padding:12px 16px;font-size:clamp(14px,1.7vw,20px);line-height:1.4}
+li b{color:var(--ac)}
+.meta{color:var(--mu);font-size:clamp(14px,1.8vw,21px);line-height:1.7}.meta b{color:var(--tx)}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px}
+.c{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:16px}
+.c .n{font-size:clamp(26px,3.6vw,44px);font-weight:800;color:var(--ac);line-height:1.1}
+.c h3{margin:0 0 4px;font-size:clamp(15px,1.8vw,20px)}
+.c p,.c .l{margin:0;color:var(--mu);font-size:clamp(12.5px,1.4vw,16px);line-height:1.45}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:center}
+@media(max-width:800px){.two{grid-template-columns:1fr}}
+img{max-width:100%;max-height:62vh;border-radius:10px;border:1px solid var(--bd);background:#fff;display:block;margin:0 auto}
+.cap{color:var(--mu);font-size:13px;text-align:center;margin-top:6px}
+.note{color:var(--mu);margin-top:14px;font-size:clamp(12.5px,1.4vw,16px)}
+table{border-collapse:collapse;width:100%;font-size:clamp(11.5px,1.35vw,16px)}
+th,td{border:1px solid var(--bd);padding:8px 10px;text-align:left;vertical-align:top}
+th{background:var(--card);color:var(--ac)}td:last-child{color:var(--ac);font-weight:600}
+.wrap{overflow-x:auto}
+.net{display:flex;align-items:center;justify-content:center;gap:6px;flex-wrap:wrap;margin:6px 0 14px}
+.net span{background:var(--card);border:1px solid var(--ac);border-radius:8px;padding:10px 14px;font-weight:700;font-size:clamp(13px,1.6vw,18px);text-align:center}
+.net span small{display:block;color:var(--mu);font-weight:400;font-size:.7em}
+.net i{color:var(--ac);font-style:normal}
+#bar{display:flex;align-items:center;gap:12px;padding:10px 16px calc(10px + env(safe-area-inset-bottom,0px));border-top:1px solid var(--bd);background:var(--card)}
+#pg{flex:1;height:4px;background:var(--bd);border-radius:2px;overflow:hidden}
+#pg div{height:100%;width:0;background:linear-gradient(90deg,var(--ac),var(--ac2));transition:width .3s}
+button{background:transparent;color:var(--tx);border:1px solid var(--bd);border-radius:8px;padding:8px 16px;font-size:15px;cursor:pointer}
+button:hover{border-color:var(--ac);color:var(--ac)}
+a{color:var(--ac2);word-break:break-all}
+#ct{color:var(--mu);font-size:14px;min-width:54px;text-align:center}
+</style></head>
+<body>
+<div id="stage"></div>
+<div id="bar"><button id="pv" aria-label="Previous">←</button><span id="ct"></span><div id="pg"><div></div></div><button id="fs" aria-label="Fullscreen">⛶</button><button id="nx" aria-label="Next">→</button></div>
+<script>
+var L=function(a){return'<ul>'+a.map(function(x){return'<li>'+x+'</li>'}).join('')+'</ul>'};
+var C=function(a){return'<div class="grid">'+a.map(function(x){return'<div class="c"><h3>'+x[0]+'</h3><p>'+x[1]+'</p></div>'}).join('')+'</div>'};
+var N=function(a){return'<div class="grid">'+a.map(function(x){return'<div class="c"><div class="n">'+x[0]+'</div><div class="l">'+x[1]+'</div></div>'}).join('')+'</div>'};
+var I=function(f,c){return'<img src="assets/'+f+'.jpg" alt="'+c+'"><div class="cap">'+c+'</div>'};
+var P=function(t,a){return'<div class="two"><div>'+t+'</div><div>'+a+'</div></div>'};
+var F=function(a){return'<div class="net">'+a.map(function(x){return'<span>'+x[0]+(x[1]?'<small>'+x[1]+'</small>':'')+'</span>'}).join('<i>→</i>')+'</div>'};
+var S=[
+'<div class="k">Bachelor of Computer Security &amp; Forensics · UTAMU</div><h1>An Autoencoder Host-Based Intrusion Detection System for Encrypted Network Traffic</h1><div class="meta" style="margin-bottom:12px">Using Flow-Based Behavioral Features</div><div class="meta"><b>Presented by:</b> Nelson Mivule &amp; Erecho Jonathan<br><b>Supervisor:</b> Mr. Senfuka Huzaifah<br><b>School of Computing and Engineering</b> · September 2026</div>',
+['Presenters &amp; Project',C([['Nelson Mivule','MAY23/CSF/2990U/F<br>Co-developer and presenter'],['Erecho Jonathan','MAY23/CSF/3335U/F<br>Co-developer and presenter'],['Project title','An Autoencoder Host-Based Intrusion Detection System for Encrypted Network Traffic Using Flow-Based Behavioral Features'],['Supervisor','Mr. Senfuka Huzaifah, School of Computing and Engineering, UTAMU']])+'<div class="note">Today: how existing IDS tools work, how ours differs, the architecture, the features, the challenges, and the documentation. Then we show the system live.</div>'],
+['Literature Review: How IDS Work',L(['An IDS watches a network or host for suspicious activity and policy violations, then alerts the security team.','<b>Signature-based:</b> compares traffic with a database of known attack patterns (Snort, Suricata). Fast and precise for known threats, blind to new ones.','<b>Anomaly-based:</b> learns what normal looks like and flags deviations (Zeek-style baselining). Can catch novel attacks, but needs tuning.','<b>The encrypted-traffic problem:</b> with TLS, HTTPS and VPNs, payloads are unreadable, so pattern matching fails unless traffic is decrypted, which raises privacy, legal and performance issues.'])],
+['How OSSEC Operates',C([['Architecture','A central manager collects data from agents installed on each host.'],['What it watches','System logs, file integrity and rootkit activity, in real time.'],['Detection','A correlation engine compares host events against a large XML rule set, then alerts or triggers automated responses.'],['Limitation','Rule setup is complex and noisy. It is log-based, so it cannot analyze network traffic and is blind to encrypted flows.']])],
+['How Zeek Operates',C([['Architecture','Turns raw packets into high-level event streams that record behavior, not just packets.'],['Detection','Scripts run on those events and keep long-term state about network activity, enabling complex custom logic.'],['Strength','Rich behavioral logs and flexible analysis of what hosts are doing.'],['Limitation','Heavy CPU and memory use at high speed, and a specialized scripting language with a steep learning curve.']])],
+['How Snort &amp; Suricata Operate',C([['Snort: capture','Captures and decodes packets, then preprocessors reassemble fragments and normalize the data.'],['Snort: detect','The engine matches traffic against a large rule database and alerts or logs on a known signature. Zero-day attacks slip through.'],['Suricata: capture','Multi-threaded engine that spreads traffic across CPU cores for deep packet inspection and protocol identification.'],['Suricata: detect','Matches a signature library and extracts metadata. Large rule sets use much memory, and encrypted or obfuscated attacks evade it.']])],
+['How Cisco Firepower Operates',C([['Dual-engine design','The LINA engine does fast Layer 3/4 filtering. The Snort 3 engine performs deep packet inspection for advanced threats.'],['Threat intelligence','Live feeds from Cisco Talos help enforce access policies and spot malware and anomalies.'],['Limitation','Complex management, slow interface, and DPI that degrades throughput on encrypted traffic without special hardware.'],['Cost','Licensing and hardware costs, plus vendor lock-in and a black-box model.']])],
+['Research Gap &amp; Comparison','<div class="wrap"><table><tr><th>Tool type</th><th>How it detects</th><th>Limitation</th><th>Our system</th></tr><tr><td>Signature (Snort, Suricata)</td><td>Pattern matching</td><td>Blind to zero-day; decryption overhead</td><td>Autoencoder reconstruction error</td></tr><tr><td>Anomaly (Zeek)</td><td>Event tracking, baselines</td><td>Manual scripting; rules-heavy</td><td>Learns normal behavior automatically</td></tr><tr><td>Host-based (OSSEC)</td><td>Logs, file integrity</td><td>Blind to encrypted flows</td><td>Host flow metadata (IAT, burstiness)</td></tr><tr><td>Hybrid (Cisco Firepower)</td><td>Dual-engine rules, proprietary ML</td><td>Cost, vendor lock-in, black-box</td><td>Open and lightweight</td></tr></table></div>'],
+['How Our System Operates',F([['Capture','Scapy + BPF'],['Flows','5-tuple'],['Features','22-D vector'],['Autoencoder','MSE'],['Decision','MSE vs τ'],['Alert','SQLite + GUI']])+L(['It never decrypts anything. It reads only Layer 3/4 headers: timing, size, rate and flags.','It learns what normal encrypted traffic looks like, with no attack labels and no signatures to update.','A flow the model cannot rebuild well has a high error, so it is flagged as an anomaly, including zero-day behavior.','Everything runs locally on the host, so no traffic leaves the machine.'])],
+['From Packets to Features',L(['<b>Capture:</b> a background thread sniffs IPv4 packets with kernel BPF filters into a bounded queue (2,000 packets) so bursts do not freeze the app.','<b>Flow building:</b> a worker groups packets by source/destination IP, ports and protocol into flows.','<b>Features:</b> once a flow has 5 or more packets, 22 statistics are computed and scaled to [0, 1] with Min-Max normalization.','<b>Encryption flag:</b> flows on TLS-type ports (443, 993, 995, 465, 587, 1194) are tagged <b>is_encrypted</b>, without reading content.'])],
+['The Autoencoder',F([['Input','22'],['Dense','16'],['Dense','8'],['Latent','4'],['Dense','8'],['Dense','16'],['Output','22']])+L(['The encoder squeezes 22 features into 4. The decoder tries to rebuild all 22.','Trained on <b>benign traffic only</b> (ISCX VPN-nonVPN, CIC-IDS2017) with MSE loss, Adam at 1e-3, batch normalization and Dropout 0.1.','Alert threshold <b>τ = μ + 2σ</b> of benign reconstruction error. Above τ means anomaly.'])],
+['Training &amp; Calibration','<div class="two"><div>'+I('threshold','Threshold calibration: τ = μ + 2σ on benign error')+'</div><div>'+I('loss','Training vs. validation loss: stable convergence')+'</div></div>'],
+['Analyst Feedback Loop',C([['1 · Alert','A flow crosses τ and appears in the alert center with its anomaly score.'],['2 · Review','The analyst inspects all 22 features and marks it true or false positive.'],['3 · Fine-tune','At least 10 flagged false positives trigger incremental fine-tuning, with a checkpoint saved first to guard against drift.'],['4 · Recalibrate','The threshold is recomputed and the new weights persist across restarts.']])],
+['System Architecture',P(L(['<b>Tier 1</b> Data acquisition &amp; preprocessing (Scapy)','<b>Tier 2</b> AI detection engine (TensorFlow/Keras)','<b>Tier 3</b> Persistence &amp; feedback (SQLite)','<b>Tier 4</b> Presentation layer (PySide6 GUI)','Docker Compose runs the FastAPI backend and the dashboard as containers'])+'',I('architecture','Four-tier architecture'))],
+['Architecture: Design Decisions',C([['Producer-consumer pipeline','Capture, parsing and inference run on separate threads, so heavy traffic never blocks the interface.'],['Signal-slot GUI','PySide6 worker threads push live scores to the dashboard without freezing it.'],['Local forensic database','hids_forensics.db stores flows, feature vectors, anomaly scores, alerts and analyst feedback.'],['Containerized deployment','Dockerfiles for backend and dashboard, NET_ADMIN for capture, persistent volumes for the database and model files.']])],
+['Features: 22 Behavioral Metrics',N([['6','Timing: flow duration, inter-arrival time stats'],['5','Volume: packet length stats, total bytes'],['2','Rate: packets/s, bytes/s'],['3','Burstiness: length variance, burst ratio, active-time ratio'],['3','Session: packet count, unique TTLs, TTL mean'],['3','Protocol: TCP-flag ratio, has UDP, has TCP']])+'<div class="note">Only Layer 3/4 headers are used, so payloads are never read.</div>'],
+['Features: Live Monitoring Console',P(L(['Live anomaly-score curve against the threshold','Alert center and flow log','22-feature forensic inspector','True / false positive verdicts feeding the loop'])+'',I('dashboard','HIDS Sentinel console (PySide6)'))],
+['Features: Dashboard Modules',C([['Console grid','Live telemetry, MSE chart versus threshold, flow table and remediation panel.'],['Network ingestion','Throughput, packet drops, buffer occupancy and all 22 feature dimensions.'],['Model analysis','Training loss, inference latency, per-feature reconstruction error and retraining pipeline.'],['Forensic reports','One-click timestamped incident reports with SOC2 / ISO27001 compliance status.'],['Settings','Themes, threshold control, model paths and database endpoint.'],['Built-in documentation','Architecture, data pipeline, deployment and API reference inside the app.']])],
+['Features: Performance &amp; Privacy',N([['0.142 ms','Average inference latency per flow (CPU)'],['0.00%','False positive rate on 6,000 benign vectors'],['22','Behavioral features, no payload access'],['100%','Local: no traffic leaves the host']])+'<div class="note">Honest scope: the validation set was benign-only, so detection of live attacks still needs further cross-validation. Throughput spikes above 10,000 packets/s can cause temporary queueing.</div>'],
+['Challenges During Implementation',C([['Dependencies','Reproducing TensorFlow/Keras, Scapy and Qt libraries consistently inside Docker.'],['Packet ingestion','Capturing high-rate traffic with Scapy without drops while inference kept pace.'],['Inference latency','Keeping the model fast enough for real-time use on 22-feature vectors.'],['Container orchestration','Sharing the SQLite database between the FastAPI backend and PySide6 dashboard through volumes.'],['GUI responsiveness','Preventing logging, database writes and inference from blocking the interface; solved with worker threads and signals.'],['Threshold calibration','Separating benign from anomalous traffic without labels, tuned on benchmark and holdout data.']])],
+['Documentation',C([['Project report','Full report: literature review, methodology, analysis and design, implementation, testing, findings.'],['Documentation Link<br>','<a href="hids_docs.html" target="_blank"</a><br>Online: <a href="https://mivulenelson.github.io/Autoencoder-Documentaion-and-Presentation-slides/" target="_blank" rel="noopener">mivulenelson.github.io/Autoencoder-Documentaion-and-Presentation-slides</a>'],['Source code','<a href="https://github.com/mivulenelson/autoencoder-based-HIDS" target="_blank" rel="noopener">github.com/mivulenelson/autoencoder-based-HIDS</a><br>Code, configs and deployment instructions.'],['Design artifacts','Use case, data-flow and ER diagrams, and the 22-feature specification.'],['Deployment guides','Docker Compose and Dockerfile configs, plus a user manual and quick-start guide.'],['Sample forensic report','Audit-ready incident export built from the SQLite database.']])],
+'<div class="k">Live Showcase</div><h1>Now, the system itself</h1><div class="meta">We will run the HIDS in front of you: live capture, anomaly scores against the threshold, the alert center and forensic inspector, the feedback loop, and report export.<br><br><b>Datasets:</b> CIC-IDS2017, ISCX VPN-nonVPN<br><b>Tools:</b> Python, TensorFlow/Keras, Scapy, FastAPI, SQLite, PySide6, Docker<br><br>Thanks to our supervisor Mr. Senfuka Huzaifah, the School of Computing and Engineering, and UTAMU.<br><b>Nelson Mivule</b> · <b>Erecho Jonathan</b></div>'
+];
+var st=document.getElementById('stage'),i=0;
+S.forEach(function(x,n){var d=document.createElement('section');d.className='s';d.innerHTML=typeof x==='string'?x:'<div class="k">'+String(n+1).padStart(2,'0')+'</div><h2>'+x[0]+'</h2>'+x[1];st.appendChild(d)});
+var el=st.children;
+function go(n){i=Math.max(0,Math.min(S.length-1,n));for(var j=0;j<el.length;j++)el[j].classList.toggle('on',j===i);document.getElementById('ct').textContent=(i+1)+' / '+S.length;document.querySelector('#pg div').style.width=((i+1)/S.length*100)+'%';try{history.replaceState(null,'','#'+(i+1))}catch(e){}}
+document.getElementById('pv').onclick=function(){go(i-1)};
+document.getElementById('nx').onclick=function(){go(i+1)};
+function fs(){var d=document.documentElement;document.fullscreenElement?document.exitFullscreen():d.requestFullscreen&&d.requestFullscreen()}
+document.getElementById('fs').onclick=fs;
+document.addEventListener('keydown',function(e){if(e.key==='ArrowRight'||e.key===' '||e.key==='PageDown')go(i+1);if(e.key==='ArrowLeft'||e.key==='PageUp')go(i-1);if(e.key==='f'||e.key==='F')fs()});
+var sx=0;st.addEventListener('touchstart',function(e){sx=e.touches[0].clientX});
+st.addEventListener('touchend',function(e){var d=e.changedTouches[0].clientX-sx;if(Math.abs(d)>60)go(i+(d<0?1:-1))});
+go((parseInt(location.hash.slice(1))||1)-1);
+</script>
+</body></html>
