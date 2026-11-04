@@ -175,20 +175,11 @@ ul.l{list-style:none;display:flex;flex-direction:column;gap:8px}ul.l li{font-siz
 <p style="font-size:26px;color:var(--text-pri);margin-bottom:22px;max-width:1040px">A host-based IDS that learns what normal encrypted traffic looks like from flow behavior, and raises an alert when that behavior changes.</p>
 <div class="who"><div><small>Researchers</small><b>Nelson Mivule</b><b>Erecho Jonathan</b></div><div><small>Supervisor</small><b>Mr. Senfuka Huzaifah</b></div><div><small>Institution</small><b>UTAMU</b><b style="font-size:20px;color:var(--text-sec)">School of Computing and Engineering</b></div></div>
 <div class="chips"><span class="chip cyan">Scapy</span><span class="chip violet">TensorFlow / Keras</span><span class="chip cyan">FastAPI · SQLite</span><span class="chip green">PySide6</span></div></div></div></section>
-
-<section class="s"><p class="eye">02 — Motivation</p><h2>Why behavior, not content</h2>
+<section class="s"><p class="eye">02 — Background</p><h2>Why behavior, not content</h2>
 <div class="chain"><div class="card"><span class="num">1</span><div class="ct cyan">Encryption is the norm</div><div class="cb">HTTPS, TLS and VPNs protect most traffic on the internet today.</div></div><div class="arr">→</div>
 <div class="card" style="border-top-color:var(--amber)"><span class="num" style="border-color:var(--amber);color:var(--amber);background:var(--amber-dim)">2</span><div class="ct amber">Encryption also hides threats</div><div class="cb">With sophisticated tools, attackers embed malicious traffic inside normal traffic. This changes its behavior: <strong>shape, size, volume and timing</strong>.</div></div><div class="arr">→</div>
 <div class="card" style="border-top-color:var(--green)"><span class="num" style="border-color:var(--green);color:var(--green);background:var(--green-dim)">3</span><div class="ct green">Learn normal, alert on change</div><div class="cb">The autoencoder learns normal flow behavior and generates an alert when that behavior shifts.</div></div></div>
 <div class="callout i" style="margin-top:12px"><strong>Key idea:</strong> content is hidden, but the behavior of the flow is not.</div></section>
-
-<section class="s"><p class="eye">03 — Problem &amp; Gap</p><h2>Where current tools fall short</h2>
-<div class="callout i" style="margin-bottom:12px"><strong>Problem:</strong> about 95% of web traffic is encrypted, so payload-based inspection cannot see inside it.</div>
-<table class="t3"><tr><th style="width:24%">Approach</th><th style="width:34%">Limitation</th><th>AE-HIDS</th></tr>
-<tr><td>Deep packet inspection · Snort, Suricata</td><td>Needs readable payloads; misses zero-days</td><td>Uses flow behavior; no decryption</td></tr>
-<tr><td>Manual scripting · Zeek</td><td>Hand-written rules; heavy upkeep</td><td>Autoencoder learns the baseline itself</td></tr>
-<tr><td>Host monitoring · OSSEC</td><td>Log-based; blind to encrypted flows</td><td>Reads host flow metadata directly</td></tr></table>
-<div class="callout g" style="margin-top:12px"><strong>Contribution:</strong> analyzing encrypted traffic with flow behavioral features to generate alerts. It does not claim to solve every attack.</div></section>
 
 <section class="s"><p class="eye">04 — Objectives</p><h2>Design logic: detect, communicate, visualize, validate</h2>
 <div class="chain"><div class="card"><span class="tag">Objectives 1–2</span><div class="ct cyan">Detect</div><div class="cb">Extract behavioral features without decrypting. Train the autoencoder on normal traffic.</div><div class="cb" style="margin-top:auto;font-size:18px"><strong>RQ1</strong> which features matter</div></div><div class="arr">→</div>
@@ -206,6 +197,15 @@ ul.l{list-style:none;display:flex;flex-direction:column;gap:8px}ul.l li{font-siz
 <div class="card"><span class="num" style="border-color:var(--amber);color:var(--amber);background:var(--amber-dim)">4</span><div><div class="ct amber">Encode, decode</div><div class="cb">22→16→8→4→8→16→22</div></div></div>
 <div class="card"><span class="num">5</span><div><div class="ct cyan">Measure</div><div class="cb">MSE between input and rebuilt output</div></div></div>
 <div class="card"><span class="num" style="border-color:var(--red);color:var(--red);background:#33101a">6</span><div><div class="ct red">Decide</div><div class="cb">Above 0.5: alert. Otherwise: normal</div></div></div></div></div></section>
+
+<section class="s"><p class="eye">03 — Problem &amp; Existing Systems</p><h2>Where current tools fall short</h2>
+<div class="callout i" style="margin-bottom:12px"><strong>Problem:</strong> about 95% of web traffic is encrypted, so payload-based inspection cannot see inside it.</div>
+<table class="t3"><tr><th style="width:24%">Approach</th><th style="width:34%">Limitation</th><th>AE-HIDS</th></tr>
+<tr><td>Deep packet inspection · Snort, Suricata</td><td>Needs readable payloads; misses zero-days</td><td>Uses flow behavior; no decryption</td></tr>
+<tr><td>Manual scripting · Zeek</td><td>Hand-written rules; heavy upkeep</td><td>Autoencoder learns the baseline itself</td></tr>
+<tr><td>Host monitoring · OSSEC</td><td>Log-based; blind to encrypted flows</td><td>Reads host flow metadata directly</td></tr></table>
+<div class="callout g" style="margin-top:12px"><strong>Contribution:</strong> analyzing encrypted traffic with flow behavioral features to generate alerts. It does not claim to solve every attack.</div></section>
+
 
 <!-- <section class="s"><p class="eye">06 — Autoencoder</p><h2>Learn normal, flag what changes</h2>
 <div class="card svgc" style="padding:6px 14px;margin-bottom:12px"><svg viewBox="0 0 1100 200" width="100%" preserveAspectRatio="xMidYMid meet" style="display:block;max-height:200px"><g font-family="monospace" font-size="15" text-anchor="middle"><g id="n"></g></g></svg></div>
